@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <SDL.h>
 
+#define FPS 30
+// milliseconds each frame takes to reach target FPS
+#define FRAME_TARGET_TIME (1000 / FPS)
+
 extern SDL_Window* window;
 extern SDL_Renderer* renderer;
 extern SDL_Texture* color_buffer_texture;
@@ -11,6 +15,7 @@ extern uint32_t* color_buffer;
 extern int window_width;
 extern int window_height;
 extern bool is_running;
+
 
 bool init_window(void);
 void destroy_window(void);
