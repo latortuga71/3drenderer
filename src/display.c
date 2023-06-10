@@ -75,8 +75,8 @@ void draw_rect(int x, int y, int width, int height, uint32_t color){
 void draw_grid(void){
     for (int row = 0; row < window_height; row += 10){
         for (int col = 0; col < window_width; col += 10){
-            color_buffer[(window_width * row) + col] = 0xFFFF0000;
-            color_buffer[(window_width * row) + col] = 0xFFFF0000;
+            color_buffer[(window_width * row) + col] = 0x00000000;
+            color_buffer[(window_width * row) + col] = 0x00000000;
         }
     }
 }
