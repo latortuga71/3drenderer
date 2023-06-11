@@ -58,72 +58,6 @@ void load_cube_mesh_data(void){
     }
 }
 
-vec3_t parse_vector_from_line(char* line){
-    char* token = strtok(line," ");
-    if (token == NULL){
-        fprintf(stderr,"ERROR::parse_vector_from_line::failed to parse float %s\n",token);
-        exit(-1);
-    }
-    float x = atof(token);
-    token = strtok(NULL," ");
-    if (token == NULL){
-        fprintf(stderr,"ERROR::parse_vector_from_line::failed to parse float %s\n",token);
-        exit(-1);
-    }
-    float y = atof(token);
-    token = strtok(NULL," ");
-    if (token == NULL){
-        fprintf(stderr,"ERROR::parse_vector_from_line::failed to parse float %s\n",token);
-        exit(-1);
-    }
-    float z = atof(token);
-    vec3_t vertex = {.x = x, .y = y, .z = z};
-    return vertex;
-}
-
-face_t parse_face_from_line(char* line){
-    char* token = strtok(line," ");
-    if (token == NULL){
-        fprintf(stderr,"ERROR::parse_face_from_line::failed to parse float\n");
-        exit(-1);
-    }
-    printf("token -> #%s \n",token);
-    int a = token[0] - '0';
-    if (a == 0){
-        fprintf(stderr,"ERROR::parse_face_from_line::failed to parse float\n");
-        exit(-1);
-    }
-    token = strtok(NULL," ");
-    if (token == NULL){
-        fprintf(stderr,"ERROR::parse_face_from_line::failed to parse float\n");
-        exit(-1);
-    }
-    printf("token -> #%s \n",token);
-    int b = token[0] - '0';
-    if (b == 0){
-        fprintf(stderr,"ERROR::parse_face_from_line::failed to parse float\n");
-        exit(-1);
-    }
-    token = strtok(NULL," ");
-    if (token == NULL){
-        fprintf(stderr,"ERROR::parse_face_from_line::failed to parse float\n");
-        exit(-1);
-    }
-    printf("token -> #%s \n",token);
-    int c = token[0] - '0';
-    if (c == 0){
-        fprintf(stderr,"ERROR::parse_face_from_line::failed to parse float\n");
-        exit(-1);
-    }
-    printf("a:%d b:%d c:%d\n",a,b,c);
-    face_t face = {
-        .a = a,
-        .b = b,
-        .c = c,
-    }; 
-    return face;
-}
-
 void load_obj_file_data(char* filename){
     char* line_buffer = NULL;
     ssize_t nread;
@@ -135,7 +69,29 @@ void load_obj_file_data(char* filename){
         fprintf(stderr,"ERROR::load_obj_file_data::failed to open obj file %d\n",errno);
     }
     while((nread = getline(&line_buffer,&line_length,file)) != -1){
-        starting_char = line_buffer[0];
+        if (strncmp(line_buffer,"v ",2) == 0){
+            vec3_t vertex;
+            sscanf(line_buffer,"v %f %f %f",&vertex.x,&vertex.y,&vertex.z);
+            array_push(mesh.vertices,vertex);
+        }
+        if (strncmp(line_buffer,"f ",2) == 0){
+            int vertex_indices[3];
+            int texture_indices[3];
+            int normal_indices[3];
+            sscanf(
+                    line_buffer, "f %d/%d/%d %d/%d/%d %d/%d%d",
+                    &vertex_indices[0],&texture_indices[0],&normal_indices[0],
+                    &vertex_indices[1],&texture_indices[1],&normal_indices[1],
+                    &vertex_indices[2],&texture_indices[2],&normal_indices[2]
+                  );
+            face_t face = {
+                .a = vertex_indices[0],
+                .b = vertex_indices[1],
+                .c = vertex_indices[2]
+            };
+            array_push(mesh.faces,face);
+        }
+        /*starting_char = line_buffer[0];
         switch (starting_char){
             case 'v': {
                 if (line_buffer[1] != ' ')
@@ -153,6 +109,7 @@ void load_obj_file_data(char* filename){
             default:
                 break;
         }
+        */
     }
     free(line_buffer);
     fclose(file);

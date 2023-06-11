@@ -37,7 +37,7 @@ void setup(void) {
     );
     // load the mesh data 
     //load_cube_mesh_data();
-    load_obj_file_data("assets/cube.obj");
+    load_obj_file_data("assets/crab.obj");
     printf("DONE!\n");
     //exit(0);
 }
