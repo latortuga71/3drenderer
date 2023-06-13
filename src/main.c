@@ -12,7 +12,7 @@
 //triangle_t triangles_to_render[N_MESH_FACES];
 triangle_t* triangles_to_render = NULL;
 
-vec3_t camera_position = { .x = 0, .y = 0, .z = -5};
+vec3_t camera_position = { .x = 0, .y = 0, .z = 0 };
 //vec3_t mesh.rotation = { .x = 0, .y = 0, .z = 0 };
 
 int previous_frame_time = 0;
@@ -37,7 +37,7 @@ void setup(void) {
     );
     // load the mesh data 
     //load_cube_mesh_data();
-    load_obj_file_data("assets/crab.obj");
+    load_obj_file_data("assets/cube.obj");
     printf("DONE!\n");
     //exit(0);
 }
@@ -82,25 +82,56 @@ void update(void) {
     mesh.rotation.z += 0.01;
     // mesh elements faces etc.
     int num_faces = array_length(mesh.faces);
+    // for all faces
     for (int i = 0; i < num_faces; i++){
         face_t mesh_face = mesh.faces[i];
         vec3_t face_vertices[3];
         face_vertices[0] = mesh.vertices[mesh_face.a  - 1 ];
         face_vertices[1] = mesh.vertices[mesh_face.b  - 1 ];
         face_vertices[2] = mesh.vertices[mesh_face.c  - 1 ];
+
         triangle_t projected_triangle;
+
+        vec3_t transformed_vertices[3];
+
         // loop all three vertices of current face and apply transformations 
         for (int j = 0; j < 3; j++){
             vec3_t transformed_vertex =  face_vertices[j];
             transformed_vertex = vec3_rotate_x(transformed_vertex,mesh.rotation.x);
             transformed_vertex = vec3_rotate_y(transformed_vertex,mesh.rotation.y);
             transformed_vertex = vec3_rotate_z(transformed_vertex,mesh.rotation.z);
-            //transformed vertex
-            
-            // move camera away
-            transformed_vertex.z -= camera_position.z;
+            // translate vertex away from camera 5 units inside monitor
+            transformed_vertex.z += 5; 
+            //save tranformed vertex
+            transformed_vertices[j] = transformed_vertex;
+        }
 
-            vec2_t projected_point = project(transformed_vertex);
+        // TODO: backface culling so we only render faces that we can see.
+        vec3_t vector_a = transformed_vertices[0];
+        vec3_t vector_b = transformed_vertices[1];
+        vec3_t vector_c = transformed_vertices[2];
+        vec3_t vector_ab = vec3_sub(vector_b,vector_a);
+        vec3_t vector_ac = vec3_sub(vector_c,vector_a);
+        vec3_normalize(&vector_ab);
+        vec3_normalize(&vector_ac);
+        // get face normal using cross product 
+        // below order of variables matters because of the handed ness of z axis
+        vec3_t normal = vec3_cross(vector_ab,vector_ac);
+        vec3_normalize(&normal);
+        // normalized normal vector
+        // find vector between point in the triangle and the camera origin
+        vec3_t camera_ray = vec3_sub(camera_position,vector_a);
+        // check if camera ray is aligned to normal negative or positive
+        float dot_normal_camera = vec3_dot(normal,camera_ray);
+        // if camera alignment is negative dont render this face.
+        if (dot_normal_camera < 0) {
+            continue;
+        }
+
+        // projecting points
+        for (int j = 0; j < 3; j++){
+            // project all points
+            vec2_t projected_point = project(transformed_vertices[j]);
             // scale and translate projected popint
             projected_point.x += (window_width / 2);
             projected_point.y += (window_height / 2);
@@ -110,22 +141,6 @@ void update(void) {
         //triangles_to_render[i] = projected_triangle;
         array_push(triangles_to_render,projected_triangle);
     }
-    /*
-    for (int i = 0; i < N_POINTS; i++){
-        vec3_t point = cube_points[i];
-        // rotate point
-        //vec3_t transformed_point = vec3_rotate_y(point,mesh.rotation.y);
-        vec3_t transformed_point = vec3_rotate_x(point,mesh.rotation.x);
-        transformed_point = vec3_rotate_y(transformed_point,mesh.rotation.y);
-        //transformed_point = vec3_rotate_x(transformed_point,mesh.rotation.x);
-        transformed_point = vec3_rotate_z(transformed_point,mesh.rotation.z);
-        // translate move point away from camera
-        transformed_point.z -= camera_position.z;
-        // project current point
-        vec2_t projected_point = project(transformed_point);
-        // save point
-        projected_points[i] = projected_point;
-    }*/
 }
 
 

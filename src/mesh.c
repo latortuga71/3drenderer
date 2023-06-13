@@ -62,7 +62,6 @@ void load_obj_file_data(char* filename){
     char* line_buffer = NULL;
     ssize_t nread;
     size_t line_length;
-    char starting_char;
     // read obj file. load into mesh vertices in global mesh like above function.
     FILE* file = fopen(filename,"r");
     if (file == NULL){
