@@ -21,7 +21,10 @@ int previous_frame_time = 0;
 float fov_factor = 640;
 
 void setup(void) {
-    // window width and height
+
+    render_method = RENDER_WIRE;
+    cull_method = CULL_BACKFACE;
+
     color_buffer = (uint32_t*)malloc(sizeof(uint32_t) * (window_width * window_height));
     if (color_buffer == NULL){
         fprintf(stderr,"main::setup::ERROR::Failed to allocate color buffer.\n");
@@ -53,6 +56,18 @@ void process_input(void) {
         case SDL_KEYDOWN:
             if (event.key.keysym.sym == SDLK_ESCAPE)
                 is_running = false;
+            if (event.key.keysym.sym == SDLK_1)
+                render_method = RENDER_WIRE_VERTEX;
+            if (event.key.keysym.sym == SDLK_2)
+                render_method = RENDER_WIRE;
+            if (event.key.keysym.sym == SDLK_3)
+                render_method = RENDER_FILL_TRIANGLE;
+            if (event.key.keysym.sym == SDLK_4)
+                render_method = RENDER_FILL_TRIANGLE_WIRE;
+            if (event.key.keysym.sym == SDLK_c)
+                cull_method = CULL_BACKFACE;
+            if (event.key.keysym.sym == SDLK_d)
+                cull_method = CULL_NONE;
             break;
     }
 }
@@ -105,29 +120,28 @@ void update(void) {
             //save tranformed vertex
             transformed_vertices[j] = transformed_vertex;
         }
-
-        // TODO: backface culling so we only render faces that we can see.
-        vec3_t vector_a = transformed_vertices[0];
-        vec3_t vector_b = transformed_vertices[1];
-        vec3_t vector_c = transformed_vertices[2];
-        vec3_t vector_ab = vec3_sub(vector_b,vector_a);
-        vec3_t vector_ac = vec3_sub(vector_c,vector_a);
-        vec3_normalize(&vector_ab);
-        vec3_normalize(&vector_ac);
-        // get face normal using cross product 
-        // below order of variables matters because of the handed ness of z axis
-        vec3_t normal = vec3_cross(vector_ab,vector_ac);
-        vec3_normalize(&normal);
-        // normalized normal vector
-        // find vector between point in the triangle and the camera origin
-        vec3_t camera_ray = vec3_sub(camera_position,vector_a);
-        // check if camera ray is aligned to normal negative or positive
-        float dot_normal_camera = vec3_dot(normal,camera_ray);
-        // if camera alignment is negative dont render this face.
-        if (dot_normal_camera < 0) {
-            continue;
+        if (cull_method == CULL_BACKFACE){
+            vec3_t vector_a = transformed_vertices[0];
+            vec3_t vector_b = transformed_vertices[1];
+            vec3_t vector_c = transformed_vertices[2];
+            vec3_t vector_ab = vec3_sub(vector_b,vector_a);
+            vec3_t vector_ac = vec3_sub(vector_c,vector_a);
+            vec3_normalize(&vector_ab);
+            vec3_normalize(&vector_ac);
+            // get face normal using cross product 
+            // below order of variables matters because of the handed ness of z axis
+            vec3_t normal = vec3_cross(vector_ab,vector_ac);
+            vec3_normalize(&normal);
+            // normalized normal vector
+            // find vector between point in the triangle and the camera origin
+            vec3_t camera_ray = vec3_sub(camera_position,vector_a);
+            // check if camera ray is aligned to normal negative or positive
+            float dot_normal_camera = vec3_dot(normal,camera_ray);
+            // if camera alignment is negative dont render this face.
+            if (dot_normal_camera < 0) {
+                continue;
+            }
         }
-
         // projecting points
         for (int j = 0; j < 3; j++){
             // project all points
@@ -150,20 +164,34 @@ void render(void) {
     int num_triangles = array_length(triangles_to_render);
     for (int i = 0; i < num_triangles; i++){
         triangle_t triangle = triangles_to_render[i];
-        // draw vertexx points
-        draw_rect(triangle.points[0].x,triangle.points[0].y,3,3,0xFFFFFF00);
-        draw_rect(triangle.points[1].x,triangle.points[1].y,3,3,0xFFFFFF00);
-        draw_rect(triangle.points[2].x,triangle.points[2].y,3,3,0xFFFFFF00);
-        // draw unfilled triangle
-        draw_triangle(
-                triangle.points[0].x,
-                triangle.points[0].y,
-                triangle.points[1].x,
-                triangle.points[1].y,
-                triangle.points[2].x,
-                triangle.points[2].y,
-                0xFFFFFFF00
-                );
+        if (render_method == RENDER_FILL_TRIANGLE || render_method == RENDER_FILL_TRIANGLE_WIRE){
+            draw_filled_triangle(
+                    triangle.points[0].x,
+                    triangle.points[0].y,
+                    triangle.points[1].x,
+                    triangle.points[1].y,
+                    triangle.points[2].x,
+                    triangle.points[2].y,
+                    0xFFFFFFF00
+                    );
+        }
+        if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE){
+            draw_triangle(
+                    triangle.points[0].x,
+                    triangle.points[0].y,
+                    triangle.points[1].x,
+                    triangle.points[1].y,
+                    triangle.points[2].x,
+                    triangle.points[2].y,
+                    0xFFFFFAA00
+                    );
+        }
+        if (render_method == RENDER_WIRE_VERTEX){
+            draw_rect(triangle.points[0].x - 3,triangle.points[0].y - 3,6,6,0xFF0FF00);
+            draw_rect(triangle.points[1].x - 3 ,triangle.points[1].y - 3,6,6,0xFF0FFF00);
+            draw_rect(triangle.points[2].x - 3 ,triangle.points[2].y - 3,6,6,0xFF0FFF00);
+        }
+
     }
     // clear array of triangles every frame
     array_free(triangles_to_render);
