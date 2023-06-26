@@ -16,6 +16,8 @@ typedef struct {
     vec3_t* vertices; // array of vertices 
     face_t* faces; // array of faces;
     vec3_t rotation; // rotation information for the mesh x,y,z
+    vec3_t scale;
+    vec3_t translation;
 } mesh_t;
 
 void load_cube_mesh_data(void);
