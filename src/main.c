@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <SDL.h>
+#include <math.h>
 #include "display.h"
 #include "matrix.h"
 #include "vector.h"
@@ -19,7 +20,10 @@ vec3_t camera_position = { .x = 0, .y = 0, .z = 0 };
 int previous_frame_time = 0;
 
 //float fov_factor = 128;
-float fov_factor = 640;
+//float fov_factor = 640;
+mat4_t proj_matrix;
+
+
 
 void setup(void) {
 
@@ -39,6 +43,14 @@ void setup(void) {
             window_width,
             window_height
     );
+    // create perspective projection matrix
+    float fov = M_PI /  3.0;
+    // 60 DEGRESS ^
+    float aspect = (float)window_height / (float)window_width;
+    float znear = 0.1;
+    float zfar = 100.0;
+    // init matrix
+    proj_matrix = mat4_make_perspective(fov, aspect , znear, zfar);
     // load the mesh data 
     load_cube_mesh_data();
     //load_obj_file_data("assets/cube.obj");
@@ -73,13 +85,14 @@ void process_input(void) {
 }
 
 // 3d vector return projected 2d point
-vec2_t project(vec3_t point){
+/*vec2_t project(vec3_t point){
     vec2_t projected_point = {
         .x = (fov_factor * point.x) / point.z,
         .y = (fov_factor * point.y) / point.z,
     };
     return projected_point;
 }
+*/
 
 
 void update(void) {
@@ -93,12 +106,12 @@ void update(void) {
     // init array of triangles to render 
     triangles_to_render = NULL;
 
-    mesh.rotation.y += 0.01;
+    //mesh.rotation.y += 0.01;
     mesh.rotation.x += 0.01;
-    mesh.rotation.z += 0.01;
+    //mesh.rotation.z += 0.01;
 
-    mesh.scale.x += 0.002;
-    mesh.scale.y += 0.001;
+    //mesh.scale.x += 0.002;
+    //mesh.scale.y += 0.001;
     //mesh.translation.x += 0.01;
     // translate vertex away from camera 5 units inside monitor
     mesh.translation.z = 5; 
@@ -176,16 +189,19 @@ void update(void) {
                 continue;
             }
         }
-        vec2_t projected_points[3];
+        vec4_t projected_points[3];
         // projecting points
         for (int j = 0; j < 3; j++){
-            // project all points
-            projected_points[j] = project(vec3_from_vec4(transformed_vertices[j]));
+            // project all points 
+            projected_points[j] = mat4_mul_vec4_project(proj_matrix, transformed_vertices[j]); //project(vec3_from_vec4(transformed_vertices[j]));
             //projected_points[j] = project(transformed_vertices[j]);
 
-            // scale and translate projected popint
-            projected_points[j].x += (window_width / 2);
-            projected_points[j].y += (window_height / 2);
+            // scale into the view
+            projected_points[j].x *= (window_width / 2.0);
+            projected_points[j].y *= (window_height/ 2.0);
+            // translate projected popint
+            projected_points[j].x += (window_width / 2.0);
+            projected_points[j].y += (window_height / 2.0);
             //projected_triangle.points[j] = projected_point;
         }
         // calculate average depth for each face based on vertices after transformation z values
